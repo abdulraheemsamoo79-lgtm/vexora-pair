@@ -1,0 +1,8 @@
+[
+  {
+    "id": "server1",
+    "name": "SERVER 01",
+    "url": "https://vexora-smd.up.railway.app",
+    "limit": 50
+  }
+]

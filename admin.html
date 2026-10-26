@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VEXORA SMD | Admin Login</title>
+<link rel="stylesheet" href="assets/admin.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="admin-body">
+<div class="admin-bg"></div>
+
+<!-- LOGIN VIEW -->
+<div class="login-card" id="loginView" style="display:none">
+  <div class="brand-mark">VX</div>
+  <h1>ADMIN <span>PANEL</span></h1>
+  <p>Secure server management</p>
+  <div class="alert danger" id="loginError" style="display:none"></div>
+  <form id="loginForm">
+    <label>Username</label>
+    <input name="username" id="loginUser" autocomplete="username" required>
+    <label>Password</label>
+    <input type="password" name="password" id="loginPass" autocomplete="current-password" required>
+    <button class="admin-btn" type="submit"><i class="fas fa-right-to-bracket"></i> Login</button>
+  </form>
+  <small>Set ADMIN_USER / ADMIN_PASS in Vercel &rarr; Settings &rarr; Environment Variables.</small>
+</div>
+
+<!-- PANEL VIEW -->
+<div class="admin-shell" id="panelView" style="display:none">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">CONTROL CENTER</div>
+      <h1>VEXORA <span>SMD</span> <b>ADMIN</b></h1>
+    </div>
+    <div class="top-actions">
+      <a href="/"><i class="fas fa-house"></i> Front Page</a>
+      <a class="logout" href="#" id="logoutLink"><i class="fas fa-power-off"></i> Logout</a>
+    </div>
+  </header>
+
+  <div class="alert success" id="msgOk" style="display:none"></div>
+  <div class="alert danger" id="msgErr" style="display:none"></div>
+  <div class="alert danger" id="storageWarn" style="display:none">Server storage is not configured yet &mdash; saving is disabled until LEDGER_TOKEN is set in Vercel &rarr; Settings &rarr; Environment Variables.</div>
+
+  <section class="stats">
+    <div class="stat"><i class="fas fa-server"></i><div><strong id="statCount">0</strong><small>Configured Servers</small></div></div>
+    <div class="stat"><i class="fas fa-link"></i><div><strong>PROXY</strong><small>Public Endpoint Bridge</small></div></div>
+    <div class="stat"><i class="fas fa-shield-halved"></i><div><strong>HTTPS</strong><small>Use SSL in production</small></div></div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head"><h2><i class="fas fa-plus"></i> Add / Update Server</h2><span>SERVER TOOLS</span></div>
+      <form id="serverForm" class="server-form">
+        <label>Server ID</label>
+        <input name="id" id="sid" placeholder="server2" required>
+        <label>Display Name</label>
+        <input name="name" id="sname" placeholder="SERVER 02" required>
+        <label>Public Server URL</label>
+        <input name="url" id="surl" placeholder="https://your-server.example.com" required>
+        <label>Server User Limit</label>
+        <input name="limit" id="slimit" type="number" min="1" max="100000" value="50" placeholder="50" required>
+        <div class="hint">Set the maximum number of active users for this server. The pairing portal will use this limit.</div>
+        <div class="hint">Example: your Replit / Railway / VPS public URL. Do not include <code>/code</code> or <code>/active</code>.</div>
+        <div class="hint">Changes go live in under a minute.</div>
+        <button class="admin-btn" type="submit"><i class="fas fa-cloud-arrow-up"></i> Save Server</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2><i class="fas fa-list"></i> Server List</h2><span id="listCount">0 NODES</span></div>
+      <div class="server-list" id="serverList"></div>
+    </section>
+  </div>
+
+  <footer>VEXORA SMD &bull; PAIRING PORTAL &bull; 2026</footer>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let servers = [];
+
+  function showAlert(kind, text) {
+    const ok = $('msgOk'), err = $('msgErr');
+    ok.style.display = 'none'; err.style.display = 'none';
+    if (!text) return;
+    const el = kind === 'ok' ? ok : err;
+    el.textContent = text; el.style.display = 'block';
+  }
+
+  async function api(body) {
+    const r = await fetch('/api/admin', {
+      method: body ? 'POST' : 'GET',
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const data = await r.json().catch(() => ({}));
+    return { status: r.status, data };
+  }
+
+  function renderServers() {
+    $('statCount').textContent = servers.length;
+    $('listCount').textContent = servers.length + ' NODES';
+    const box = $('serverList');
+    if (!servers.length) {
+      box.innerHTML = '<div class="empty">No servers yet. Add your first public server.</div>';
+      return;
+    }
+    box.innerHTML = '';
+    servers.forEach((s) => {
+      const row = document.createElement('div');
+      row.className = 'server-row';
+      row.innerHTML = '<div class="node"><div class="node-icon"><i class="fas fa-server"></i></div>' +
+        '<div><strong></strong><small></small><em></em></div></div>' +
+        '<div class="row-actions"><button type="button" class="mini edit"><i class="fas fa-pen"></i></button>' +
+        '<button type="button" class="mini delete"><i class="fas fa-trash"></i></button></div>';
+      row.querySelector('strong').textContent = s.name || '';
+      row.querySelector('small').textContent = s.id || '';
+      row.querySelector('em').textContent = s.url || '';
+      row.querySelector('.edit').addEventListener('click', () => editServer(s));
+      row.querySelector('.delete').addEventListener('click', () => deleteServer(s));
+      box.appendChild(row);
+    });
+  }
+
+  function editServer(s) {
+    $('sid').value = s.id || '';
+    $('sname').value = s.name || '';
+    $('surl').value = s.url || '';
+    $('slimit').value = s.limit || 50;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function deleteServer(s) {
+    if (!confirm('Delete this server?')) return;
+    const { status, data } = await api({ action: 'delete', id: s.id });
+    if (status === 200) { servers = data.servers || []; renderServers(); showAlert('ok', data.message); }
+    else showAlert('err', data.error || 'Delete failed.');
+  }
+
+  async function init() {
+    const r = await fetch('/api/admin?action=me');
+    const me = await r.json().catch(() => ({}));
+    if (me.loggedIn) {
+      servers = me.servers || [];
+      $('loginView').style.display = 'none';
+      $('panelView').style.display = 'block';
+      document.title = 'VEXORA SMD | Admin Panel';
+      $('storageWarn').style.display = me.storage ? 'none' : 'block';
+      renderServers();
+    } else {
+      $('panelView').style.display = 'none';
+      $('loginView').style.display = 'block';
+      if (me.configured === false) {
+        const e = $('loginError');
+        e.textContent = 'Admin password is not configured yet. Set ADMIN_PASS in Vercel → Settings → Environment Variables, then redeploy.';
+        e.style.display = 'block';
+      }
+    }
+  }
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const { status, data } = await api({ action: 'login', username: $('loginUser').value, password: $('loginPass').value });
+    if (status === 200) { init(); }
+    else {
+      const er = $('loginError');
+      er.textContent = data.error || 'Login failed.';
+      er.style.display = 'block';
+    }
+  });
+
+  $('serverForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      action: 'save',
+      id: $('sid').value, name: $('sname').value,
+      url: $('surl').value, limit: parseInt($('slimit').value || '50', 10)
+    };
+    const { status, data } = await api(payload);
+    if (status === 200) { servers = data.servers || servers; renderServers(); showAlert('ok', data.message); }
+    else showAlert('err', data.error || 'Save failed.');
+  });
+
+  $('logoutLink').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await fetch('/api/admin?action=logout');
+    location.reload();
+  });
+
+  init();
+</script>
+</body>
+</html>

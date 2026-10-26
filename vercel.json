@@ -1,1 +1,10 @@
-{"functions":{"api/code.js":{"maxDuration":60}}}
+{
+  "functions": {
+    "api/proxy.js": { "maxDuration": 60 },
+    "api/admin.js": { "maxDuration": 30 },
+    "api/servers.js": { "maxDuration": 15 }
+  },
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" }
+  ]
+}
