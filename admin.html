@@ -23,7 +23,7 @@
     <input type="password" name="password" id="loginPass" autocomplete="current-password" required>
     <button class="admin-btn" type="submit"><i class="fas fa-right-to-bracket"></i> Login</button>
   </form>
-  <small>Set ADMIN_USER / ADMIN_PASS in Vercel &rarr; Settings &rarr; Environment Variables.</small>
+  <small>Default credentials are set in the portal config &mdash; change them there.</small>
 </div>
 
 <!-- PANEL VIEW -->
@@ -41,7 +41,7 @@
 
   <div class="alert success" id="msgOk" style="display:none"></div>
   <div class="alert danger" id="msgErr" style="display:none"></div>
-  <div class="alert danger" id="storageWarn" style="display:none">Server storage is not configured yet &mdash; saving is disabled until LEDGER_TOKEN is set in Vercel &rarr; Settings &rarr; Environment Variables.</div>
+  <div class="alert danger" id="storageWarn" style="display:none">Server storage is not configured.</div>
 
   <section class="stats">
     <div class="stat"><i class="fas fa-server"></i><div><strong id="statCount">0</strong><small>Configured Servers</small></div></div>
@@ -63,7 +63,6 @@
         <input name="limit" id="slimit" type="number" min="1" max="100000" value="50" placeholder="50" required>
         <div class="hint">Set the maximum number of active users for this server. The pairing portal will use this limit.</div>
         <div class="hint">Example: your Replit / Railway / VPS public URL. Do not include <code>/code</code> or <code>/active</code>.</div>
-        <div class="hint">Changes go live in under a minute.</div>
         <button class="admin-btn" type="submit"><i class="fas fa-cloud-arrow-up"></i> Save Server</button>
       </form>
     </section>
@@ -152,11 +151,6 @@
     } else {
       $('panelView').style.display = 'none';
       $('loginView').style.display = 'block';
-      if (me.configured === false) {
-        const e = $('loginError');
-        e.textContent = 'Admin password is not configured yet. Set ADMIN_PASS in Vercel → Settings → Environment Variables, then redeploy.';
-        e.style.display = 'block';
-      }
     }
   }
 

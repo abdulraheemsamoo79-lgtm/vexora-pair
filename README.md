@@ -15,14 +15,15 @@ the PHP portal design to run on Vercel serverless hosting.
   add / edit / delete pairing servers. Changes are committed to
   `data/servers.json` in this repo and go live in under a minute.
 
-## Configuration (Vercel → Settings → Environment Variables)
+## Configuration
 
-- `ADMIN_USER` — admin username (default: `admin`)
-- `ADMIN_PASS` — admin password (**set your own**; login is disabled
-  until this is set)
-- `LEDGER_TOKEN` — fine-grained GitHub token with **Contents:
-  Read and write** on this repo only; required for the admin panel
-  to save server changes.
+Admin credentials live in `lib/config.js` (the `config.php`
+equivalent) — change them there. They can also be overridden with
+the `ADMIN_USER` / `ADMIN_PASS` environment variables.
+
+Server changes made in the admin panel are saved to the project's
+Vercel KV store (the writable equivalent of `data/servers.json` on
+PHP hosting); the bundled `data/servers.json` is the starting list.
 
 ## Servers
 

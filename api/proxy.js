@@ -9,7 +9,7 @@
 // user limit when a live count is available, then relays the target's
 // /api/code response. The portal never creates pairing codes itself.
 
-const { loadServers, findServer, cleanUrl, safeServerUrl } = require('../lib/store');
+const { loadServersLive, findServer, cleanUrl, safeServerUrl } = require('../lib/store');
 
 function sendJson(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -63,7 +63,7 @@ module.exports = async (req, res) => {
   const { searchParams } = new URL(req.url, 'http://localhost');
   const serverId = String(searchParams.get('server') || '').trim();
   const action = String(searchParams.get('action') || 'active').trim();
-  const servers = loadServers();
+  const servers = await loadServersLive();
   const server = findServer(servers, serverId);
 
   if (!server) return sendJson(res, 404, { error: 'Server not found' });
