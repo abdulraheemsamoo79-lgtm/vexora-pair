@@ -17,9 +17,9 @@ the PHP portal design to run on Vercel serverless hosting.
 
 ## Configuration
 
-Admin credentials live in `lib/config.js` (the `config.php`
-equivalent) — change them there. They can also be overridden with
-the `ADMIN_USER` / `ADMIN_PASS` environment variables.
+Admin credentials are set with the `ADMIN_USER` / `ADMIN_PASS`
+environment variables (Vercel → Settings → Environment Variables)
+and read through `lib/config.js`, the `config.php` equivalent.
 
 Server changes made in the admin panel are saved to the project's
 Vercel KV store (the writable equivalent of `data/servers.json` on
