@@ -1,21 +1,18 @@
-// VEXORA PAIR — pairing code relay (v2, with servers)
-// GET /api/code?number=<whatsapp number>&server=<id>
+// VEXORA PAIR - pairing code relay
+// GET /api/code?number=<whatsapp number with country code>
+// Returns the bot's own JSON: { code: "XXXX-XXXX" } or an error.
 //
 // The pairing page (index.html) lives on this Vercel site, but a
-// pairing code can only be created by the bot process itself — it
-// opens the WhatsApp socket and stores the new session. This function
-// validates the number, checks the chosen server's capacity in the
-// pairing ledger (lib/ledger.js), then relays the request to the
-// bot's own pairing endpoint on Railway and passes its answer back.
-// On success the pairing is recorded in the ledger.
-//
-// If the bot's Railway domain ever changes, update BOT_BASE below —
-// nothing else needs to change.
-
-const { SERVERS, readLedger, serverStats, recordPair } = require('../lib/ledger');
+// pairing code can only be created by the bot process itself - it
+// opens the WhatsApp socket and stores the new session. So this
+// function simply relays the request to the bot's own pairing
+// endpoint on Railway (GET /api/code?number=) and passes its answer
+// back. Sessions and everything else stay on the bot's side; this
+// site is only the face. If the bot's Railway domain ever changes,
+// update BOT_BASE below - nothing else needs to change.
 
 function sendJson(res, code, obj) {
-  res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+  res.writeHead(code, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(obj, null, 2));
 }
 
@@ -32,37 +29,15 @@ module.exports = async (req, res) => {
       return sendJson(res, 200, { status: false, message: 'Valid number with country code is required' });
     }
 
-    const serverId = parseInt(searchParams.get('server') || '1', 10);
-    const server = SERVERS.find((s) => s.id === serverId) || SERVERS[0];
-
-    // Capacity gate: a number that already paired can always re-pair;
-    // a brand-new number is refused when the chosen server is full.
-    try {
-      const ledger = await readLedger();
-      const already = !!(ledger.pairs && ledger.pairs[number]);
-      if (!already) {
-        const stat = serverStats(ledger).find((s) => s.id === server.id);
-        if (stat && stat.full) {
-          return sendJson(res, 200, {
-            status: false,
-            full: true,
-            server: server.id,
-            message: `${server.name} is full (${stat.used}/${stat.capacity} users). Please try again later.`
-          });
-        }
-      }
-    } catch (_) { /* ledger unreadable — never block pairing on it */ }
-
     const botRes = await fetch(BOT_BASE + '/api/code?number=' + encodeURIComponent(number), {
       signal: AbortSignal.timeout(45000)
     });
     const data = await botRes.json().catch(() => null);
     if (!data) {
-      return sendJson(res, 200, { status: false, message: 'Bot did not respond — try again in a moment' });
+      return sendJson(res, 200, { status: false, message: 'Bot did not respond - try again in a moment' });
     }
     if (data.code) {
-      await recordPair(number, server.id).catch(() => {});
-      return sendJson(res, 200, { status: true, code: data.code, server: server.id });
+      return sendJson(res, 200, { status: true, code: data.code });
     }
     return sendJson(res, 200, {
       status: false,
